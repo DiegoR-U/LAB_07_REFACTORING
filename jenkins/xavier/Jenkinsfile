@@ -1,0 +1,74 @@
+
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    triggers {
+        pollSCM('H/5 * * * *')
+    }
+
+    environment {
+        GRADLE_OPTS = '-Dorg.gradle.daemon=false'
+    }
+
+    stages {
+        stage('1. Construccion') {
+            steps {
+                sh 'chmod +x gradlew'
+                sh './gradlew clean assemble testClasses'
+            }
+        }
+
+        stage('2. Pruebas') {
+            steps {
+                sh './gradlew :mooc:test --tests "tv.codely.mooc.courses_counter.application.*" --tests "tv.codely.mooc.courses_counter.domain.*"'
+                sh './gradlew :test --tests "*CoursesCounterGetControllerErrorMappingShould"'
+            }
+            post {
+                always {
+                    junit testResults: '**/build/test-results/test/*.xml', allowEmptyResults: false
+                }
+            }
+        }
+
+        stage('3. SonarQube') {
+            steps {
+                script {
+                    def scannerHome = tool 'SonarScanner'
+                    withSonarQubeEnv('SonarQube') {
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner \
+                              -Dsonar.projectKey=lab07-xavier-courses-counter \
+                              -Dsonar.projectName='Lab07 - Xavier - CoursesCounter' \
+                              -Dsonar.sourceEncoding=UTF-8 \
+                              -Dsonar.java.source=21 \
+                              -Dsonar.sources=src/mooc/main/tv/codely/mooc/courses_counter,apps/main/tv/codely/apps/mooc/backend/controller/courses_counter \
+                              -Dsonar.tests=src/mooc/test/tv/codely/mooc/courses_counter,apps/test/tv/codely/apps/mooc/backend/controller/courses_counter \
+                              -Dsonar.java.binaries=src/mooc/build/classes/java/main,build/classes/java/main \
+                              -Dsonar.java.test.binaries=src/mooc/build/classes/java/test,build/classes/java/test \
+                              -Dsonar.java.libraries='/var/jenkins_home/.gradle/caches/modules-2/files-2.1/**/*.jar' \
+                              -Dsonar.coverage.jacoco.xmlReportPaths=src/mooc/build/reports/jacoco/test/jacocoTestReport.xml
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('4. Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+    }
+
+    post {
+        success { echo 'Pipeline en verde: compila, las pruebas pasan y cumple el Quality Gate.' }
+        failure { echo 'Pipeline en rojo: revisa la etapa que fallo.' }
+    }
+}

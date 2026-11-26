@@ -1,0 +1,26 @@
+services:
+  jenkins:
+    image: jenkins/jenkins:lts-jdk21
+    container_name: jenkins-xavier
+    ports:
+      - "8080:8080"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+    restart: unless-stopped
+
+  sonarqube:
+    image: sonarqube:community
+    container_name: sonarqube-xavier
+    ports:
+      - "9000:9000"
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+    restart: unless-stopped
+
+volumes:
+  jenkins_home:
+  sonarqube_data:
+  sonarqube_extensions:

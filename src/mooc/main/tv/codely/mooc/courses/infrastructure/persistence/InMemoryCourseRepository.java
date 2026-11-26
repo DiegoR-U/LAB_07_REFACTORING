@@ -9,6 +9,7 @@ import tv.codely.shared.domain.criteria.Filter;
 
 import java.util.stream.Collectors;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -140,6 +141,8 @@ public final class InMemoryCourseRepository implements CourseRepository {
             return;
         }
 
+        Comparator<String> comparator = Comparator.nullsFirst(Comparator.naturalOrder());
+
         for (int i = 0; i < courses.size() - 1; i++) {
             for (int j = i + 1; j < courses.size(); j++) {
 
@@ -150,7 +153,7 @@ public final class InMemoryCourseRepository implements CourseRepository {
                     fieldValue(courses.get(j), field);
 
                 int comparison =
-                    first.compareTo(second);
+                    comparator.compare(first, second);
 
                 boolean shouldSwap =
                     ascending

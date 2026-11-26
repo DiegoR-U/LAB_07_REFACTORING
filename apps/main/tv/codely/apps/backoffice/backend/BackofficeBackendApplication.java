@@ -17,8 +17,6 @@ import tv.codely.shared.domain.Service;
 public class BackofficeBackendApplication {
 
 	public static HashMap<String, Class<?>> commands() {
-		return new HashMap<String, Class<?>>() {
-			{}
-		};
+		return new HashMap<>();
 	}
 }
